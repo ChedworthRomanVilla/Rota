@@ -1459,14 +1459,12 @@ function toggleHTP() {
 }
 
 // =============================================
-// SHARED GAMES COUNTER
+// GAMES COUNTER (CountAPI)
 // =============================================
 
 async function incrementGamesPlayed() {
   try {
-    const result = await window.storage.get('rota-games-played', true);
-    const current = result ? parseInt(result.value) || 0 : 0;
-    await window.storage.set('rota-games-played', String(current + 1), true);
+    await fetch('https://api.countapi.xyz/hit/chedworthromanvilla-rota/games-played');
   } catch(e) {}
 }
 
@@ -1474,8 +1472,10 @@ async function loadVisitorCount() {
   const el = document.getElementById('visitorCount');
   if (!el) return;
   try {
-    const result = await window.storage.get('rota-games-played', true);
-    const total = result ? parseInt(result.value) || 0 : 0;
+    const res = await fetch('https://api.countapi.xyz/get/chedworthromanvilla-rota/games-played');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const total = data.value || 0;
     if (total > 0) {
       el.textContent = `🏛️ ${total.toLocaleString()} game${total !== 1 ? 's' : ''} played`;
     } else {
