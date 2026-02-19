@@ -77,17 +77,19 @@
     text-shadow: 0 4px 40px rgba(0,0,0,0.7);
   }
 
-  .home-tagline {
-    font-family: 'Crimson Text', serif;
-    font-size: 16px; font-style: italic;
-    color: rgba(245,240,232,0.5);
-    margin-top: 10px; letter-spacing: 1px;
-  }
-
   .home-sub {
     font-family: 'Cinzel', serif;
-    font-size: 8px; letter-spacing: 3px;
-    color: rgba(245,240,232,0.4); margin-top: 6px;
+    font-size: clamp(0.75rem, 3.5vw, 1rem);
+    letter-spacing: 2px;
+    color: rgba(245,240,232,0.7); margin-top: 10px;
+    text-transform: none;
+  }
+
+  .home-visitor-count {
+    margin-top: 10px;
+    font-family: 'Crimson Text', serif;
+    font-size: 13px; font-style: italic;
+    color: rgba(201,168,76,0.6);
   }
 
   /* Mode cards */
@@ -333,12 +335,14 @@
 
   .chedworth-link {
     font-family: 'Crimson Text', serif;
-    font-size: 13px; color: rgba(245,240,232,0.4);
+    font-size: 16px; color: rgba(245,240,232,0.5);
     font-style: italic; text-align: center;
   }
   .chedworth-link a {
     color: var(--gold); text-decoration: none;
-    border-bottom: 1px solid rgba(201,168,76,0.3);
+    border-bottom: 1px solid rgba(201,168,76,0.4);
+    font-size: 17px;
+    transition: color 0.2s;
   }
   .chedworth-link a:hover { color: #e0bc5a; }
 
@@ -660,8 +664,8 @@
   <div class="home-hero">
     <div class="home-eyebrow">Ancient Roman Game</div>
     <div class="home-title">ROTA</div>
-    <div class="home-tagline">The game of the legions</div>
     <div class="home-sub">Chedworth Roman Villa</div>
+    <div class="home-visitor-count" id="visitorCount"></div>
   </div>
 
   <div class="mode-cards">
@@ -680,7 +684,7 @@
   </div>
 
   <div class="chedworth-link">
-    <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa" target="_blank">Visit Chedworth Roman Villa</a>
+    <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank" onclick="trackLinkClick()">Visit Chedworth Roman Villa</a>
   </div>
 </div>
 
@@ -745,7 +749,7 @@
   <button class="btn-begin" onclick="startGame()">Begin</button>
 
   <div class="chedworth-link">
-    <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa" target="_blank">Visit Chedworth Roman Villa</a>
+    <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank">Visit Chedworth Roman Villa</a>
   </div>
 </div>
 
@@ -857,7 +861,7 @@
   </div>
 
   <footer class="footer">
-    <p><a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa" target="_blank">Chedworth Roman Villa</a></p>
+    <p><a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank">Chedworth Roman Villa</a></p>
   </footer>
 </div>
 
@@ -931,7 +935,18 @@ function showHome() {
   document.getElementById('nameScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.add('hidden');
   document.getElementById('winOverlay').classList.add('hidden');
+
+  // If name inputs are blank it's a fresh session — clear displayed scores
+  const n1 = document.getElementById('nameInput1').value.trim();
+  const n2 = document.getElementById('nameInput2').value.trim();
+  if (!n1 && !n2) {
+    scores['2p'] = {p1: 0, p2: 0};
+    scores['ai'] = {p1: 0, p2: 0};
+    saveScores();
+  }
+
   updateHomeScores();
+  loadVisitorCount();
 }
 
 function updateHomeScores() {
@@ -1029,7 +1044,7 @@ function startGame() {
   document.getElementById('nameScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
 
-  document.getElementById('diffToggleGame').style.display = aiEnabled ? 'flex' : 'none';
+  trackGameStart(currentMode);
   syncDiffToggleGame();
   updateScoreBar();
   resetGame();
@@ -1443,6 +1458,38 @@ function toggleHTP() {
 }
 
 // =============================================
+// TRACKING (GoatCounter)
+// =============================================
+
+async function loadVisitorCount() {
+  const el = document.getElementById('visitorCount');
+  if (!el) return;
+  try {
+    const res = await fetch('https://chedworthromanvilla.goatcounter.com/counter//index.html.json');
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    const total = data.count || 0;
+    if (total > 0) {
+      el.textContent = `Played ${Number(total).toLocaleString()} time${total !== 1 ? 's' : ''}`;
+    }
+  } catch(e) {
+    el.textContent = '';
+  }
+}
+
+function trackLinkClick() {
+  if (window.goatcounter && window.goatcounter.count) {
+    window.goatcounter.count({ path: 'chedworth-link-click', title: 'Chedworth Link Click', event: true });
+  }
+}
+
+function trackGameStart(mode) {
+  if (window.goatcounter && window.goatcounter.count) {
+    window.goatcounter.count({ path: 'game-start-' + mode, title: 'Game Started: ' + mode, event: true });
+  }
+}
+
+// =============================================
 // INIT
 // =============================================
 
@@ -1452,5 +1499,10 @@ showHome();
 document.getElementById('nameInput1').addEventListener('input', updateTallyDisplay);
 document.getElementById('nameInput2').addEventListener('input', updateTallyDisplay);
 </script>
+
+<!-- GoatCounter Analytics -->
+<script data-goatcounter="https://chedworthromanvilla.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+
 </body>
 </html>
