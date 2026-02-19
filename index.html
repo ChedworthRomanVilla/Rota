@@ -1459,28 +1459,36 @@ function toggleHTP() {
 }
 
 // =============================================
-// GAMES COUNTER (CountAPI)
+// GAMES COUNTER (GoatCounter)
 // =============================================
 
 async function incrementGamesPlayed() {
-  try {
-    await fetch('https://api.countapi.xyz/hit/chedworthromanvilla-rota/games-played');
-  } catch(e) {}
+  // GoatCounter counts page views automatically via the script tag
+  // We fire a custom event for each game completion
+  if (window.goatcounter && window.goatcounter.count) {
+    window.goatcounter.count({ path: 'game-completed', title: 'Game Completed', event: true });
+  }
 }
 
 async function loadVisitorCount() {
   const el = document.getElementById('visitorCount');
   if (!el) return;
   try {
-    const res = await fetch('https://api.countapi.xyz/get/chedworthromanvilla-rota/games-played');
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    const total = data.value || 0;
-    if (total > 0) {
-      el.textContent = `🏛️ ${total.toLocaleString()} game${total !== 1 ? 's' : ''} played`;
-    } else {
-      el.textContent = '';
-    }
+    // Fetch the view count for the root path using GoatCounter's public counter endpoint
+    // Requires "Allow adding visitor counts on your website" to be enabled in GoatCounter settings
+    const r = new XMLHttpRequest();
+    r.addEventListener('load', function() {
+      try {
+        const data = JSON.parse(this.responseText);
+        const total = data.count || 0;
+        if (total > 0) {
+          el.textContent = `🏛️ ${Number(total).toLocaleString()} visit${total !== 1 ? 's' : ''}`;
+        }
+      } catch(e) { el.textContent = ''; }
+    });
+    r.addEventListener('error', function() { el.textContent = ''; });
+    r.open('GET', 'https://chedworthromanvilla.goatcounter.com/counter/' + encodeURIComponent('/') + '.json');
+    r.send();
   } catch(e) {
     el.textContent = '';
   }
