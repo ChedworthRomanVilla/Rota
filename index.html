@@ -85,13 +85,6 @@
     text-transform: none;
   }
 
-  .home-visitor-count {
-    margin-top: 10px;
-    font-family: 'Crimson Text', serif;
-    font-size: 13px; font-style: italic;
-    color: rgba(201,168,76,0.6);
-  }
-
   /* Mode cards */
   .mode-cards {
     width: 100%;
@@ -665,7 +658,6 @@
     <div class="home-eyebrow">Ancient Roman Game</div>
     <div class="home-title">ROTA</div>
     <div class="home-sub">Chedworth Roman Villa</div>
-    <div class="home-visitor-count" id="visitorCount"></div>
   </div>
 
   <div class="mode-cards">
@@ -684,7 +676,7 @@
   </div>
 
   <div class="chedworth-link">
-    <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank" onclick="trackLinkClick()">Visit Chedworth Roman Villa</a>
+    <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank">Visit Chedworth Roman Villa</a>
   </div>
 </div>
 
@@ -946,7 +938,6 @@ function showHome() {
   }
 
   updateHomeScores();
-  loadVisitorCount();
 }
 
 function updateHomeScores() {
@@ -1168,7 +1159,6 @@ function endGame(winner) {
   else scores[currentMode].p2++;
   saveScores();
   updateHomeScores();
-  incrementGamesPlayed();
 
   const winLine = getWinLine(winner);
   if (winLine) showWinningLine(winLine, winner);
@@ -1266,12 +1256,11 @@ function aiPickPlace() {
   const win = findWinMove(2);
   if (win !== -1) return win;
 
-  // Always block a winning move
+  // Block immediate win
   const block = findWinMove(1);
   if (block !== -1) return block;
 
   if (aiDifficulty === 'easy') {
-    // Easy: mostly random but occasionally makes a smart move (30% smart)
     if (Math.random() < 0.3) {
       if (board[8] === null) return 8;
       const good = empties().filter(n => WIN_LINES.some(l => l.includes(n) && l.filter(i=>board[i]===2).length===1));
@@ -1287,11 +1276,41 @@ function aiPickPlace() {
     return rand(empties());
   }
 
-  // Hard: scored placement
+  // Hard: fork-aware scored placement
   if (board[8] === null) return 8;
+
+  // Block opponent fork (two winning threats at once)
+  const oppFork = findForkMove(1);
+  if (oppFork !== -1) return oppFork;
+
+  // Create our own fork
+  const myFork = findForkMove(2);
+  if (myFork !== -1) return myFork;
+
   const opts = empties().map(n => ({n, s: scorePlace(n, 2) - scorePlace(n, 1)*0.7}));
   opts.sort((a,b)=>b.s-a.s);
   return opts[0].n;
+}
+
+// Count how many winning threats a player would have after placing at a node
+function countThreats(player, node) {
+  board[node] = player;
+  let threats = 0;
+  for (const line of WIN_LINES) {
+    const mine = line.filter(i => board[i] === player).length;
+    const free = line.filter(i => board[i] === null).length;
+    if (mine === 2 && free === 1) threats++;
+  }
+  board[node] = null;
+  return threats;
+}
+
+// Find a move that creates 2+ threats (a fork) for the given player
+function findForkMove(player) {
+  for (const node of empties()) {
+    if (countThreats(player, node) >= 2) return node;
+  }
+  return -1;
 }
 
 function findWinMove(player) {
@@ -1343,12 +1362,22 @@ function aiPickMove() {
   }
 
   if (aiDifficulty === 'easy') {
-    // Easy: random valid move (no strategy)
     const moves = [];
     for (const from of mine)
       for (const to of ADJACENCY[from])
         if (board[to]===null) moves.push({from,to});
     return moves.length ? rand(moves) : null;
+  }
+
+  // Hard: detect and block forks, create own forks
+  if (aiDifficulty === 'hard') {
+    // Block opponent fork move
+    const forkBlock = findMoveBlockFork(mine);
+    if (forkBlock) return forkBlock;
+
+    // Create our own fork
+    const forkCreate = findMoveCreateFork(mine);
+    if (forkCreate) return forkCreate;
   }
 
   // Medium & Hard: scored move
@@ -1359,6 +1388,57 @@ function aiPickMove() {
   if (!moves.length) return null;
   moves.sort((a,b)=>b.score-a.score);
   return moves[0];
+}
+
+// Find a move that blocks the opponent from creating a fork next turn
+function findMoveBlockFork(mine) {
+  const opp = board.map((v,i)=>v===1?i:-1).filter(i=>i!==-1);
+  // Check every opponent move — if it creates 2+ threats, we must block that destination
+  const forkSquares = new Set();
+  for (const from of opp) {
+    for (const to of ADJACENCY[from]) {
+      if (board[to] !== null) continue;
+      board[to]=1; board[from]=null;
+      const threats = countMovingThreats(1);
+      board[from]=1; board[to]=null;
+      if (threats >= 2) forkSquares.add(to);
+    }
+  }
+  if (forkSquares.size === 0) return null;
+  // Try to move one of our pieces to a fork square to block it
+  for (const target of forkSquares) {
+    for (const from of mine) {
+      if (ADJACENCY[from].includes(target) && board[target] === null) {
+        return {from, to: target};
+      }
+    }
+  }
+  return null;
+}
+
+// Count winning threats for a player in the moving phase
+function countMovingThreats(player) {
+  let threats = 0;
+  for (const line of WIN_LINES) {
+    const mine = line.filter(i => board[i] === player).length;
+    const free = line.filter(i => board[i] === null).length;
+    if (mine === 2 && free === 1) threats++;
+  }
+  return threats;
+}
+
+// Find a move that creates 2+ threats for us (a fork)
+function findMoveCreateFork(mine) {
+  for (const from of mine) {
+    for (const to of ADJACENCY[from]) {
+      if (board[to] !== null) continue;
+      board[to]=2; board[from]=null;
+      const threats = countMovingThreats(2);
+      board[from]=2; board[to]=null;
+      if (threats >= 2) return {from, to};
+    }
+  }
+  return null;
 }
 
 function evalMove(from, to) {
@@ -1459,54 +1539,6 @@ function toggleHTP() {
 }
 
 // =============================================
-// GAMES COUNTER (GoatCounter)
-// =============================================
-
-async function incrementGamesPlayed() {
-  // GoatCounter counts page views automatically via the script tag
-  // We fire a custom event for each game completion
-  if (window.goatcounter && window.goatcounter.count) {
-    window.goatcounter.count({ path: 'game-completed', title: 'Game Completed', event: true });
-  }
-}
-
-async function loadVisitorCount() {
-  const el = document.getElementById('visitorCount');
-  if (!el) return;
-  try {
-    // Fetch the view count for the root path using GoatCounter's public counter endpoint
-    // Requires "Allow adding visitor counts on your website" to be enabled in GoatCounter settings
-    const r = new XMLHttpRequest();
-    r.addEventListener('load', function() {
-      try {
-        const data = JSON.parse(this.responseText);
-        const total = data.count || 0;
-        if (total > 0) {
-          el.textContent = `🏛️ ${Number(total).toLocaleString()} visit${total !== 1 ? 's' : ''}`;
-        }
-      } catch(e) { el.textContent = ''; }
-    });
-    r.addEventListener('error', function() { el.textContent = ''; });
-    r.open('GET', 'https://chedworthromanvilla.goatcounter.com/counter/' + encodeURIComponent('/') + '.json');
-    r.send();
-  } catch(e) {
-    el.textContent = '';
-  }
-}
-
-function trackLinkClick() {
-  if (window.goatcounter && window.goatcounter.count) {
-    window.goatcounter.count({ path: 'chedworth-link-click', title: 'Chedworth Link Click', event: true });
-  }
-}
-
-function trackGameStart(mode) {
-  if (window.goatcounter && window.goatcounter.count) {
-    window.goatcounter.count({ path: 'game-start-' + mode, title: 'Game Started: ' + mode, event: true });
-  }
-}
-
-// =============================================
 // INIT
 // =============================================
 
@@ -1517,9 +1549,6 @@ document.getElementById('nameInput1').addEventListener('input', updateTallyDispl
 document.getElementById('nameInput2').addEventListener('input', updateTallyDisplay);
 </script>
 
-<!-- GoatCounter Analytics -->
-<script data-goatcounter="https://chedworthromanvilla.goatcounter.com/count"
-        async src="//gc.zgo.at/count.js"></script>
-
+<!-- end -->
 </body>
 </html>
