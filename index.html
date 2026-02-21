@@ -328,16 +328,17 @@
 
   .chedworth-link {
     font-family: 'Crimson Text', serif;
-    font-size: 16px; color: rgba(245,240,232,0.5);
+    font-size: 18px; color: rgba(245,240,232,0.6);
     font-style: italic; text-align: center;
   }
   .chedworth-link a {
     color: var(--gold); text-decoration: none;
-    border-bottom: 1px solid rgba(201,168,76,0.4);
-    font-size: 17px;
-    transition: color 0.2s;
+    border-bottom: 2px solid rgba(201,168,76,0.5);
+    font-size: 20px;
+    padding-bottom: 2px;
+    transition: color 0.2s, border-color 0.2s;
   }
-  .chedworth-link a:hover { color: #e0bc5a; }
+  .chedworth-link a:hover { color: #e0bc5a; border-color: #e0bc5a; }
 
   /* ===================== GAME SCREEN ===================== */
   #gameScreen {
@@ -1035,7 +1036,6 @@ function startGame() {
   document.getElementById('nameScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
 
-  trackGameStart(currentMode);
   syncDiffToggleGame();
   updateScoreBar();
   resetGame();
@@ -1160,9 +1160,6 @@ function endGame(winner) {
   saveScores();
   updateHomeScores();
 
-  const winLine = getWinLine(winner);
-  if (winLine) showWinningLine(winLine, winner);
-
   const s = scores[currentMode];
   document.getElementById('winPlayerName').textContent = playerNames[winner - 1];
   document.getElementById('winScoreBox').textContent = `${playerNames[0]}: ${s.p1}  —  ${playerNames[1]}: ${s.p2}`;
@@ -1174,15 +1171,23 @@ function endGame(winner) {
   document.getElementById('phaseLabel').textContent = 'Victoria!';
   updateScoreBar();
 
-  document.getElementById('rotaBoard').style.cursor = '';
-  // Win overlay appears automatically after winning line animation completes
-  // 3 nodes × 500ms apart + 600ms buffer = 2100ms total
+  // Pause so player can see the final piece land, then animate winning line
   setTimeout(() => {
-    document.getElementById('winOverlay').classList.remove('hidden');
-  }, 2100);
+    const winLine = getWinLine(winner);
+    if (winLine) showWinningLine(winLine, winner);
+
+    // Win overlay appears after winning line animation completes
+    // 3 nodes × 500ms apart + 600ms buffer = 2100ms
+    setTimeout(() => {
+      document.getElementById('winOverlay').classList.remove('hidden');
+    }, 2100);
+  }, 600);
 }
 
 function showWinningLine(line, winner) {
+  // First do a clean renderBoard so all pieces are in correct positions
+  renderBoard();
+
   // Dim all non-winning nodes
   for (let i = 0; i < 9; i++) {
     const el = document.getElementById('node' + i);
@@ -1202,13 +1207,12 @@ function showWinningLine(line, winner) {
       el.style.strokeWidth = '4';
       el.style.strokeDasharray = '';
       el.style.opacity = '1';
-      // Pulse size
       el.setAttribute('r', '28');
       setTimeout(() => {
         el.setAttribute('r', '24');
         setTimeout(() => el.setAttribute('r', '22'), 200);
       }, 200);
-    }, step * 500); // 500ms between each node — nice and slow
+    }, step * 500);
   });
 }
 
@@ -1232,6 +1236,7 @@ function maybeAI() {
 
 function doAI() {
   if (gameOver) return;
+  selectedNode = null; // always clear any lingering selection before AI move renders
   if (phase === 'placing') {
     const move = aiPickPlace();
     board[move] = 2; placedCount[1]++;
@@ -1241,7 +1246,10 @@ function doAI() {
     switchPlayer(); updateUI();
   } else {
     const mv = aiPickMove();
-    if (mv) { board[mv.to] = 2; board[mv.from] = null; }
+    if (mv) {
+      board[mv.to] = 2;
+      board[mv.from] = null;
+    }
     renderBoard();
     if (checkWin(2)) { endGame(2); return; }
     switchPlayer(); updateUI();
@@ -1252,44 +1260,61 @@ function empties() { return board.map((v,i)=>v===null?i:-1).filter(i=>i!==-1); }
 function rand(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
 
 function aiPickPlace() {
-  // Win immediately
+  // 1. Win immediately if possible
   const win = findWinMove(2);
   if (win !== -1) return win;
 
-  // Block immediate win
+  // 2. Block immediate single win
   const block = findWinMove(1);
   if (block !== -1) return block;
 
   if (aiDifficulty === 'easy') {
     if (Math.random() < 0.3) {
       if (board[8] === null) return 8;
-      const good = empties().filter(n => WIN_LINES.some(l => l.includes(n) && l.filter(i=>board[i]===2).length===1));
-      if (good.length) return rand(good);
     }
     return rand(empties());
   }
+
+  // 3. Check if player ALREADY has a fork (2 threat squares right now)
+  const existingThreats = getThreatSquares(1);
+  if (existingThreats.size >= 2) {
+    // Can't block both — pick the one that also helps us most
+    const threatArr = [...existingThreats];
+    // Prefer a threat square that also builds our own position
+    const best = threatArr.sort((a, b) => scorePlace(b, 2) - scorePlace(a, 2));
+    return best[0];
+  }
+
+  // 4. Block a square that would give player a fork next turn
+  const forkBlock = findForkMove(1);
+  if (forkBlock !== -1) return forkBlock;
 
   if (aiDifficulty === 'medium') {
     if (board[8] === null) return 8;
     const good = empties().filter(n => WIN_LINES.some(l => l.includes(n) && l.filter(i=>board[i]===2).length===1));
     if (good.length) return rand(good);
+    // Avoid squares that help player fork
+    const safe = empties().filter(n => countThreats(1, n) < 2);
+    if (safe.length) return rand(safe);
     return rand(empties());
   }
 
-  // Hard: fork-aware scored placement
-  if (board[8] === null) return 8;
-
-  // Block opponent fork (two winning threats at once)
-  const oppFork = findForkMove(1);
-  if (oppFork !== -1) return oppFork;
-
-  // Create our own fork
+  // Hard: 5. Create our own fork
   const myFork = findForkMove(2);
   if (myFork !== -1) return myFork;
 
-  const opts = empties().map(n => ({n, s: scorePlace(n, 2) - scorePlace(n, 1)*0.7}));
-  opts.sort((a,b)=>b.s-a.s);
-  return opts[0].n;
+  // 6. Best scored placement avoiding fork-enabling squares
+  if (board[8] === null) return 8;
+  const opts = empties()
+    .filter(n => countThreats(1, n) < 2)
+    .map(n => ({n, s: scorePlace(n, 2) - scorePlace(n, 1) * 0.7}));
+  if (opts.length) {
+    opts.sort((a,b) => b.s - a.s);
+    return opts[0].n;
+  }
+  const fallback = empties().map(n => ({n, s: scorePlace(n, 2) - scorePlace(n, 1) * 0.7}));
+  fallback.sort((a,b) => b.s - a.s);
+  return fallback[0].n;
 }
 
 // Count how many winning threats a player would have after placing at a node
@@ -1305,7 +1330,29 @@ function countThreats(player, node) {
   return threats;
 }
 
-// Find a move that creates 2+ threats (a fork) for the given player
+// Count existing threats on board right now (no extra placement)
+function countExistingThreats(player) {
+  let threats = 0;
+  for (const line of WIN_LINES) {
+    const mine = line.filter(i => board[i] === player).length;
+    const free = line.filter(i => board[i] === null).length;
+    if (mine === 2 && free === 1) threats++;
+  }
+  return threats;
+}
+
+// Get all empty squares that would complete a threat for player
+function getThreatSquares(player) {
+  const squares = new Set();
+  for (const line of WIN_LINES) {
+    const mine = line.filter(i => board[i] === player).length;
+    const free = line.filter(i => board[i] === null);
+    if (mine === 2 && free.length === 1) squares.add(free[0]);
+  }
+  return squares;
+}
+
+// Find a placement that creates 2+ threats (a fork) for the given player
 function findForkMove(player) {
   for (const node of empties()) {
     if (countThreats(player, node) >= 2) return node;
@@ -1369,13 +1416,14 @@ function aiPickMove() {
     return moves.length ? rand(moves) : null;
   }
 
-  // Hard: detect and block forks, create own forks
-  if (aiDifficulty === 'hard') {
-    // Block opponent fork move
+  // Medium & Hard: detect and block forks
+  if (aiDifficulty === 'medium' || aiDifficulty === 'hard') {
     const forkBlock = findMoveBlockFork(mine);
     if (forkBlock) return forkBlock;
+  }
 
-    // Create our own fork
+  // Hard only: also create own forks
+  if (aiDifficulty === 'hard') {
     const forkCreate = findMoveCreateFork(mine);
     if (forkCreate) return forkCreate;
   }
