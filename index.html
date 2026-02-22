@@ -64,9 +64,10 @@
 
   .home-eyebrow {
     font-family: 'Cinzel', serif;
-    font-size: 9px; letter-spacing: 5px;
-    color: var(--gold); margin-bottom: 8px;
-    text-transform: uppercase;
+    font-size: clamp(0.75rem, 3.5vw, 1rem);
+    letter-spacing: 2px;
+    color: rgba(245,240,232,0.7); margin-bottom: 8px;
+    text-transform: none;
   }
 
   .home-title {
@@ -414,14 +415,14 @@
     background: rgba(0,0,0,0.28);
     border: 1px solid rgba(201,168,76,0.18);
     border-radius: 4px;
-    padding: 8px 16px; margin-bottom: 10px;
+    padding: 6px 16px; margin-bottom: 6px;
   }
 
   .score-bar-item { text-align: center; flex: 1; }
 
   .score-bar-num {
     font-family: 'Cinzel', serif;
-    font-size: 1.5rem; font-weight: 900; color: var(--gold); line-height: 1;
+    font-size: 1.3rem; font-weight: 900; color: var(--gold); line-height: 1;
   }
 
   .score-bar-name {
@@ -436,11 +437,11 @@
     letter-spacing: 2px; padding: 0 8px;
   }
 
-  /* Phase banner */
+  /* Phase banner — now includes instruction text */
   .phase-banner {
-    width: 100%; padding: 10px 20px;
+    width: 100%; padding: 8px 20px;
     border-radius: 4px; text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
     transition: background 0.35s ease;
     border: 1px solid rgba(255,255,255,0.08);
   }
@@ -452,26 +453,26 @@
 
   .turn-label {
     font-family: 'Cinzel', serif;
-    font-size: 10px; letter-spacing: 3px;
-    color: rgba(255,255,255,0.65); margin-bottom: 2px;
+    font-size: 9px; letter-spacing: 3px;
+    color: rgba(255,255,255,0.65); margin-bottom: 1px;
   }
 
   .turn-name {
     font-family: 'Cinzel', serif;
-    font-size: clamp(1rem, 4vw, 1.3rem);
+    font-size: clamp(0.95rem, 4vw, 1.2rem);
     font-weight: 700; color: var(--white); letter-spacing: 2px;
   }
 
   .phase-label {
     font-family: 'Crimson Text', serif;
     font-size: 13px; color: rgba(255,255,255,0.6);
-    font-style: italic; margin-top: 2px;
+    font-style: italic; margin-top: 1px;
   }
 
   /* Counters row */
   .counters-row {
     display: flex; justify-content: space-between; align-items: center;
-    width: 100%; margin-bottom: 8px; padding: 0 4px;
+    width: 100%; margin-bottom: 5px; padding: 0 4px;
   }
 
   .player-info { display: flex; align-items: center; gap: 8px; flex: 1; }
@@ -480,14 +481,14 @@
   .counter-dots { display: flex; gap: 5px; }
 
   .counter-dot {
-    width: 20px; height: 20px; border-radius: 50%; transition: all 0.3s;
+    width: 18px; height: 18px; border-radius: 50%; transition: all 0.3s;
   }
   .counter-dot.p1 { background: var(--p1-color); border: 2px solid var(--p1-light); box-shadow: 0 0 5px rgba(192,57,43,0.35); }
   .counter-dot.p2 { background: var(--p2-color); border: 2px solid var(--p2-border); box-shadow: 0 0 5px rgba(245,240,232,0.2); }
 
   .player-label {
     font-family: 'Cinzel', serif;
-    font-size: 11px; letter-spacing: 1px;
+    font-size: 10px; letter-spacing: 1px;
     color: rgba(255,255,255,0.6);
     max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
@@ -500,8 +501,8 @@
 
   /* Board */
   .board-wrapper {
-    width: 100%; max-width: 370px;
-    margin: 4px 0;
+    width: 100%; max-width: 340px;
+    margin: 2px 0;
   }
 
   .board-wrapper svg {
@@ -513,16 +514,17 @@
   .node-hitarea { cursor: pointer; }
   .node-hitarea:active { opacity: 0.7; }
 
+  /* Instruction text — now sits below board, compact */
   .instruction-text {
     font-family: 'Crimson Text', serif;
-    font-size: 15px; color: rgba(245,240,232,0.7);
+    font-size: 17px; color: rgba(245,240,232,0.75);
     text-align: center; font-style: italic;
-    margin: 7px 0; min-height: 22px;
+    margin: 4px 0; min-height: 20px;
   }
 
   /* AI thinking */
   .ai-thinking-row {
-    height: 20px; display: flex; align-items: center; justify-content: center;
+    height: 16px; display: flex; align-items: center; justify-content: center;
     margin-bottom: 2px;
   }
 
@@ -543,9 +545,27 @@
     0%,20%{content:''} 40%{content:'.'} 60%{content:'..'} 80%,100%{content:'...'}
   }
 
+  /* Game screen link + how to play */
+  .game-footer {
+    width: 100%; margin-top: 6px;
+  }
+
+  .game-chedworth-link {
+    font-family: 'Crimson Text', serif;
+    font-size: 15px; color: rgba(245,240,232,0.5);
+    font-style: italic; text-align: center;
+    margin-bottom: 6px;
+  }
+  .game-chedworth-link a {
+    color: var(--gold); text-decoration: none;
+    border-bottom: 1px solid rgba(201,168,76,0.4);
+    font-size: 16px; transition: color 0.2s;
+  }
+  .game-chedworth-link a:hover { color: #e0bc5a; }
+
   /* How to play */
   .how-to-play {
-    width: 100%; margin-top: 14px;
+    width: 100%; margin-top: 6px;
     border: 1px solid rgba(201,168,76,0.18); border-radius: 4px; overflow: hidden;
   }
 
@@ -679,6 +699,20 @@
   <div class="chedworth-link">
     <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank">Visit Chedworth Roman Villa</a>
   </div>
+
+  <div class="how-to-play" style="margin-top: 16px;">
+    <button class="htp-header" onclick="toggleHomeHTP()">
+      <span>How to Play</span>
+      <span class="htp-arrow" id="homeHtpArrow">▼</span>
+    </button>
+    <div class="htp-body" id="homeHtpBody">
+      <p><strong>Aim:</strong> Be the first to get 3 of your counters in a row.</p>
+      <p><strong>Phase 1 — Placing:</strong> Take turns placing one counter on any empty spot. Each player has 3 counters.</p>
+      <p><strong>Phase 2 — Moving:</strong> Once all counters are placed, slide one counter per turn along a line to an adjacent empty spot. No jumping.</p>
+      <p><strong>Winning:</strong> Three consecutive spots around the outer ring, or 3 in a straight line through the centre. A spread-out triangle does <em>not</em> count.</p>
+    </div>
+  </div>
+
 </div>
 
 <!-- ===================== NAME SCREEN ===================== -->
@@ -750,9 +784,7 @@
 <div id="gameScreen" class="hidden">
 
   <header class="header">
-    <div class="header-eyebrow">Ancient Roman Game</div>
     <h1>ROTA</h1>
-    <div class="header-sub">Chedworth Roman Villa</div>
     <div class="header-controls">
       <button class="btn-menu-small" onclick="goHome()">◀ Menu</button>
       <div class="diff-toggle" id="diffToggleGame" style="display:none;">
@@ -840,22 +872,24 @@
 
   <div class="instruction-text" id="instructionText">Place your counter on any empty spot</div>
 
-  <div class="how-to-play">
-    <button class="htp-header" onclick="toggleHTP()">
-      <span>How to Play</span>
-      <span class="htp-arrow" id="htpArrow">▼</span>
-    </button>
-    <div class="htp-body" id="htpBody">
-      <p><strong>Aim:</strong> Be the first to get 3 of your counters in a row.</p>
-      <p><strong>Phase 1 — Placing:</strong> Take turns placing one counter on any empty spot. Each player has 3 counters.</p>
-      <p><strong>Phase 2 — Moving:</strong> Once all counters are placed, slide one counter per turn along a line to an adjacent empty spot. No jumping.</p>
-      <p><strong>Winning:</strong> Three consecutive spots around the outer ring, or 3 in a straight line through the centre. A spread-out triangle does <em>not</em> count.</p>
+  <div class="game-footer">
+    <div class="game-chedworth-link">
+      <a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank">Visit Chedworth Roman Villa</a>
+    </div>
+    <div class="how-to-play">
+      <button class="htp-header" onclick="toggleHTP()">
+        <span>How to Play</span>
+        <span class="htp-arrow" id="htpArrow">▼</span>
+      </button>
+      <div class="htp-body" id="htpBody">
+        <p><strong>Aim:</strong> Be the first to get 3 of your counters in a row.</p>
+        <p><strong>Phase 1 — Placing:</strong> Take turns placing one counter on any empty spot. Each player has 3 counters.</p>
+        <p><strong>Phase 2 — Moving:</strong> Once all counters are placed, slide one counter per turn along a line to an adjacent empty spot. No jumping.</p>
+        <p><strong>Winning:</strong> Three consecutive spots around the outer ring, or 3 in a straight line through the centre. A spread-out triangle does <em>not</em> count.</p>
+      </div>
     </div>
   </div>
 
-  <footer class="footer">
-    <p><a href="https://www.nationaltrust.org.uk/visit/gloucestershire-cotswolds/chedworth-roman-villa/events" target="_blank">Chedworth Roman Villa</a></p>
-  </footer>
 </div>
 
 <!-- Win Overlay -->
@@ -1584,6 +1618,11 @@ function renderBoard() {
 function toggleHTP() {
   document.getElementById('htpBody').classList.toggle('open');
   document.getElementById('htpArrow').classList.toggle('open');
+}
+
+function toggleHomeHTP() {
+  document.getElementById('homeHtpBody').classList.toggle('open');
+  document.getElementById('homeHtpArrow').classList.toggle('open');
 }
 
 // =============================================
