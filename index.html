@@ -683,7 +683,14 @@
 
   <div class="mode-cards">
     <div class="mode-card two-player" onclick="showNameScreen('2p')">
-      <div class="mode-card-icon">👥</div>
+      <div class="mode-card-icon">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="14" cy="13" r="6" fill="#c9a84c" opacity="0.9"/>
+          <path d="M2 32c0-7 5.4-11 12-11s12 4 12 11" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+          <circle cx="27" cy="13" r="5" fill="#f5f0e8" opacity="0.7"/>
+          <path d="M20 32c0-6 4-9.5 9-9.5" stroke="#f5f0e8" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+        </svg>
+      </div>
       <span class="mode-card-title">Two Players</span>
       <span class="mode-card-desc">Pass & play</span>
       <div class="mode-card-score" id="homeScore2P">—</div>
@@ -721,7 +728,7 @@
     <div class="name-screen-back">
       <button class="btn-back-small" onclick="showHome()">◀ Back</button>
     </div>
-    <div class="name-screen-mode-icon" id="nameScreenIcon">👥</div>
+    <div class="name-screen-mode-icon" id="nameScreenIcon"></div>
     <div class="name-screen-title" id="nameScreenTitle">Two Players</div>
     <div class="name-screen-sub" id="nameScreenSub">Enter your names to begin</div>
   </div>
@@ -999,8 +1006,15 @@ function showNameScreen(mode) {
   document.getElementById('homeScreen').classList.add('hidden');
   document.getElementById('nameScreen').classList.remove('hidden');
 
+  const twoPlayerSVG = `<svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="14" cy="13" r="6" fill="#c9a84c" opacity="0.9"/>
+    <path d="M2 32c0-7 5.4-11 12-11s12 4 12 11" stroke="#c9a84c" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
+    <circle cx="27" cy="13" r="5" fill="#f5f0e8" opacity="0.7"/>
+    <path d="M20 32c0-6 4-9.5 9-9.5" stroke="#f5f0e8" stroke-width="2.5" stroke-linecap="round" opacity="0.7"/>
+  </svg>`;
+
   if (mode === '2p') {
-    document.getElementById('nameScreenIcon').textContent = '👥';
+    document.getElementById('nameScreenIcon').innerHTML = twoPlayerSVG;
     document.getElementById('nameScreenTitle').textContent = 'Two Players';
     document.getElementById('nameScreenSub').textContent = 'Enter your names to begin';
     document.getElementById('nameField2Row').style.display = 'flex';
@@ -1219,19 +1233,18 @@ function endGame(winner) {
 }
 
 function showWinningLine(line, winner) {
-  // First do a clean renderBoard so all pieces are in correct positions
-  renderBoard();
-
-  // Dim all non-winning nodes
+  // Board is already correctly rendered — just overlay the animation
+  // Dim non-winning nodes immediately
   for (let i = 0; i < 9; i++) {
     const el = document.getElementById('node' + i);
     if (!el) continue;
     if (!line.includes(i)) {
       el.style.opacity = '0.2';
+      el.style.transition = 'opacity 0.3s ease';
     }
   }
 
-  // Light up each winning node gold, one by one, slowly
+  // Pulse each winning node gold one by one
   line.forEach((idx, step) => {
     const el = document.getElementById('node' + idx);
     if (!el) return;
